@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Sakhi - सखी | Voice AI</title>
+  <meta name="description" content="AI voice companion with automatic Indian language detection for rural women to access PM Matru Vandana Yojana (PMMVY) maternity benefits.">
+  <meta name="theme-color" content="#E05A47">
+  
+  <!-- Web App Manifest & Favicon (Inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2246%22 fill=%22%23E05A47%22/><circle cx=%2250%22 cy=%2250%22 r=%2238%22 fill=%22%23FFF7ED%22/><path d=%22M32 40 C32 30 68 30 68 40 C68 55 50 60 50 72 M50 78 A2 2 0 1 1 50 82%22 stroke=%22%23E05A47%22 stroke-width=%228%22 fill=%22none%22 stroke-linecap=%22round%22/></svg>">
+  
+  <!-- Google Fonts for Indian Languages (Noto Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700;800&family=Noto+Sans+Gujarati:wght@400;600;700&family=Noto+Sans+Kannada:wght@400;600;700;800&family=Noto+Sans+Malayalam:wght@400;600;700;800&family=Noto+Sans+Tamil:wght@400;600;700;800&family=Noto+Sans+Telugu:wght@400;600;700;800&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container" id="app">
+
+    <!-- ========================================== -->
+    <!-- DIRECT VOICE SCREEN (No Picker Screen)     -->
+    <!-- One giant mic button, auto language detect -->
+    <!-- ========================================== -->
+    <main class="voice-screen-layout" id="screen-voice" aria-label="Sakhi Voice Screen">
+      
+      <!-- Minimal Header -->
+      <header class="voice-header">
+        <div class="header-brand">
+          <!-- Sakhi Lotus Icon -->
+          <div class="brand-avatar" aria-hidden="true">
+            <svg viewBox="0 0 36 36" width="30" height="30" fill="none">
+              <circle cx="18" cy="18" r="17" fill="#FFF1E8" stroke="#E05A47" stroke-width="1.8"/>
+              <path d="M18 7 C18 15 11 22 11 27 C11 30 14 31 18 31 C22 31 25 30 25 27 C25 22 18 15 18 7 Z" fill="#E05A47"/>
+              <circle cx="18" cy="26" r="1.8" fill="#FFF7ED"/>
+            </svg>
+          </div>
+          <!-- Auto Detected Language Badge -->
+          <span class="active-lang-badge" id="header-lang-tag">सखी</span>
+        </div>
+
+        <!-- Step Indicator (Pictorial Progress Dots) -->
+        <div class="step-indicator" id="step-dots" aria-label="प्रगति">
+          <span class="step-dot active" data-step="discover" title="शुरुआत"></span>
+          <span class="step-dot" data-step="check" title="पात्रता"></span>
+          <span class="step-dot" data-step="plan" title="कागज़ात"></span>
+          <span class="step-dot" data-step="teachback" title="पुष्टि"></span>
+          <span class="step-dot" data-step="done" title="पूर्ण"></span>
+        </div>
+
+        <!-- Reset Button -->
+        <button class="icon-nav-btn" id="btn-reset-chat" type="button" title="नई बातचीत" aria-label="बातचीत फिर से शुरू करें">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </button>
+      </header>
+
+      <!-- Subtitle / Dialogue Area -->
+      <section class="dialogue-area" aria-live="polite">
+        <!-- User Speech Transcript (in native script) -->
+        <div class="user-bubble" id="user-transcript" style="display: none;">
+          <span class="bubble-icon" aria-hidden="true">🗣️</span>
+          <span class="bubble-text" id="user-transcript-text"></span>
+        </div>
+
+        <!-- Sakhi Spoken Reply (in native script) -->
+        <div class="sakhi-bubble" id="sakhi-response">
+          <div class="sakhi-avatar-small" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="34" height="34" fill="none">
+              <circle cx="20" cy="20" r="19" fill="#E05A47"/>
+              <circle cx="20" cy="15" r="7" fill="#FFF7ED"/>
+              <path d="M10 33 C10 26 15 23 20 23 C25 23 30 26 30 33" stroke="#FFF7ED" stroke-width="3" stroke-linecap="round" fill="none"/>
+              <circle cx="20" cy="13" r="1.3" fill="#E05A47"/>
+            </svg>
+          </div>
+          <p class="sakhi-text" id="sakhi-reply-text">नमस्ते • வணக்கம் • నమస్కారం • ನಮಸ್ಕಾರ • നമസ്കാരം • नमस्कार</p>
+        </div>
+      </section>
+
+      <!-- Giant Mic Stage Area (Fills center of screen) -->
+      <section class="mic-stage">
+        <!-- Dynamic State Beacon (idle, listening, thinking, speaking, error) -->
+        <div class="status-beacon idle" id="status-beacon">
+          <div class="ring ring-outer"></div>
+          <div class="ring ring-middle"></div>
+          <div class="ring ring-inner"></div>
+
+          <!-- Waveform Animation (when speaking) -->
+          <div class="waveform-container" id="waveform" aria-hidden="true">
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+          </div>
+
+          <!-- Spinner (when thinking) -->
+          <div class="spinner-container" id="spinner" aria-hidden="true">
+            <svg class="spinner-svg" viewBox="0 0 50 50">
+              <circle class="spinner-path" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+            </svg>
+          </div>
+
+          <!-- The Giant Round Mic Button -->
+          <button class="giant-mic-btn" id="btn-mic" type="button" aria-label="बोलने के लिए बड़ा बटन दबाएँ">
+            <span class="mic-icon-wrapper" id="mic-icon-wrapper">
+              <svg viewBox="0 0 24 24" class="mic-svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Action Controls Row -->
+      <footer class="action-controls-row">
+        <!-- Large Repeat Button -->
+        <button class="repeat-btn" id="btn-repeat" type="button" title="फिर से सुनें" aria-label="फिर से सुनें">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+        </button>
+      </footer>
+
+      <!-- Developer Debug Line (Requirement 4) -->
+      <div class="dev-debug-bar" id="dev-debug-bar" aria-label="Developer Debug Information">
+        <span class="debug-badge">DEV</span>
+        <span class="debug-text" id="dev-debug-text">Sakhi ready • Tap mic to speak</span>
+      </div>
+
+      <!-- Fallback Text Input (If mic blocked or manual text desired) -->
+      <div class="fallback-input-container" id="fallback-input-container" style="display: none;">
+        <input type="text" class="fallback-input" id="fallback-text-input" placeholder="यहाँ लिखकर भेजें..." aria-label="अपनी बात लिखें">
+        <button class="fallback-send-btn" id="btn-fallback-send" type="button" aria-label="भेजें">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAKE-HOME CARD MODAL (Pictorial Checklist)  -->
+      <!-- ========================================== -->
+      <div class="take-home-modal" id="take-home-modal" role="dialog" aria-modal="true" aria-label="जरूरी कागज़ात">
+        <div class="take-home-card">
+          <div class="take-home-header">
+            <span class="take-home-badge-icon" aria-hidden="true">📋</span>
+            <h2 class="take-home-title" id="take-home-title">आपके जरूरी कागज़</h2>
+          </div>
+
+          <!-- 4 Pictorial Cards Grid -->
+          <div class="pictorial-grid">
+            <!-- 1. Aadhaar Card -->
+            <div class="pictorial-item" id="item-aadhaar">
+              <div class="pictorial-icon card-aadhaar">
+                <svg viewBox="0 0 48 48" width="40" height="40" fill="none">
+                  <rect x="4" y="8" width="40" height="32" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="3"/>
+                  <circle cx="16" cy="22" r="6" fill="#3B82F6"/>
+                  <rect x="26" y="18" width="14" height="3" rx="1.5" fill="#3B82F6"/>
+                  <rect x="26" y="24" width="10" height="3" rx="1.5" fill="#93C5FD"/>
+                  <rect x="10" y="32" width="28" height="3" rx="1.5" fill="#60A5FA"/>
+                </svg>
+              </div>
+              <span class="pictorial-label" id="label-aadhaar">आधार कार्ड</span>
+            </div>
+
+            <!-- 2. Bank Passbook -->
+            <div class="pictorial-item" id="item-bank">
+              <div class="pictorial-icon card-bank">
+                <svg viewBox="0 0 48 48" width="40" height="40" fill="none">
+                  <rect x="6" y="6" width="36" height="36" rx="5" fill="#ECFDF5" stroke="#10B981" stroke-width="3"/>
+                  <path d="M14 16 L24 10 L34 16 Z" fill="#10B981"/>
+                  <line x1="16" y1="20" x2="16" y2="32" stroke="#10B981" stroke-width="2.5"/>
+                  <line x1="24" y1="20" x2="24" y2="32" stroke="#10B981" stroke-width="2.5"/>
+                  <line x1="32" y1="20" x2="32" y2="32" stroke="#10B981" stroke-width="2.5"/>
+                  <line x1="12" y1="34" x2="36" y2="34" stroke="#10B981" stroke-width="3"/>
+                </svg>
+              </div>
+              <span class="pictorial-label" id="label-bank">बैंक पासबुक</span>
+            </div>
+
+            <!-- 3. Pregnancy / MCP Card -->
+            <div class="pictorial-item" id="item-mcp">
+              <div class="pictorial-icon card-mcp">
+                <svg viewBox="0 0 48 48" width="40" height="40" fill="none">
+                  <rect x="6" y="6" width="36" height="36" rx="5" fill="#FFF1F2" stroke="#F43F5E" stroke-width="3"/>
+                  <circle cx="21" cy="18" r="5" fill="#F43F5E"/>
+                  <circle cx="30" cy="22" r="3.5" fill="#FB7185"/>
+                  <path d="M14 36 C14 27 28 27 28 36" fill="#F43F5E"/>
+                  <path d="M26 36 C26 30 36 30 36 36" fill="#FB7185"/>
+                </svg>
+              </div>
+              <span class="pictorial-label" id="label-mcp">जच्चा-बच्चा कार्ड</span>
+            </div>
+
+            <!-- 4. Anganwadi Center / ASHA Worker -->
+            <div class="pictorial-item" id="item-anganwadi">
+              <div class="pictorial-icon card-anganwadi">
+                <svg viewBox="0 0 48 48" width="40" height="40" fill="none">
+                  <rect x="6" y="14" width="36" height="28" rx="4" fill="#FEF3C7" stroke="#F59E0B" stroke-width="3"/>
+                  <path d="M4 16 L24 4 L44 16" stroke="#F59E0B" stroke-width="3.5" stroke-linecap="round"/>
+                  <rect x="20" y="26" width="8" height="16" fill="#F59E0B"/>
+                  <path d="M24 18 V22 M22 20 H26" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="pictorial-label" id="label-anganwadi">आँगनवाड़ी केंद्र</span>
+            </div>
+          </div>
+
+          <!-- Anti-Fraud Reassurance Banner -->
+          <div class="anti-fraud-pill">
+            <span class="shield-icon" aria-hidden="true">🛡️</span>
+            <span class="pill-text" id="anti-fraud-text">सरकारी मदद 100% मुफ़्त है • किसी को पैसे न दें</span>
+          </div>
+
+          <!-- Take-Home Actions -->
+          <div class="take-home-actions">
+            <button class="btn-primary" id="btn-card-speak" type="button">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+              <span id="btn-card-speak-text">फिर से सुनें</span>
+            </button>
+            
+            <button class="btn-secondary" id="btn-card-share" type="button">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span id="btn-card-share-text">परिवार को भेजें</span>
+            </button>
+          </div>
+
+          <button class="btn-close-modal" id="btn-close-card" type="button" aria-label="बंद करें">✕</button>
+        </div>
+      </div>
+
+      <!-- Developer Debug Line -->
+      <div class="dev-debug-bar" id="debug-info-bar">
+        <span class="debug-badge">DEBUG</span>
+        <span class="debug-text" id="debug-text">Ready • Tap mic to speak</span>
+      </div>
+    </main>
+
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
